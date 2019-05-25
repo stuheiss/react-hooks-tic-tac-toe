@@ -11,14 +11,10 @@ import './index.css'
 // Learn more about service workers: https://bit.ly/CRA-PWA
 // serviceWorker.unregister();
 
-// try refactor player to use bool instead of 'X'
-// try refactor to combine both useState into a custom hook
 // try refactor to useReducer
-// try to implement useHistory for time travel
-// try to implement time travel (see docs, example ttt, final results codepen)
+// try add running totals
 
 function Square({ value, onClick }) {
-  // destructure props.number
   return (
     <button className="square" onClick={onClick}>
       {value}
@@ -27,36 +23,33 @@ function Square({ value, onClick }) {
 }
 
 function Board(props) {
-  const [squares, setSquares] = props.state.squares
-  const [player, setPlayer] = props.state.player
-  const [winner, setWinner] = props.state.winner
-  const [movesleft, setMovesleft] = props.state.movesleft
+  const [history, setHistory] = props.state.history
+  const [stepNumber, setStepNumber] = props.state.stepNumber
 
-  const status = 'Next player: ' + player
-  const winnerMsg = winner ? 'Winner: ' + winner : ''
-  const gameoverMsg = movesleft < 1 ? 'Tie game' : ''
+  const current = history[stepNumber]
+  const squares = current.squares.slice()
 
   function renderSquare(i) {
     return <Square value={squares[i]} onClick={() => handleClick(i)} />
   }
 
   function handleClick(i) {
-    if (squares[i] || winner) {
+    const newHistory = history.slice(0, stepNumber + 1)
+    const newCurrent = newHistory[newHistory.length - 1]
+    const newSquares = newCurrent.squares.slice()
+    const player = getPlayer(newSquares)
+
+    if (newSquares[i] || calculateWinner(newSquares)) {
       return null
     }
-    const newSquares = squares.slice()
+
     newSquares[i] = player
-    setSquares(newSquares)
-    setPlayer(player === 'X' ? 'O' : 'X')
-    setWinner(calculateWinner(newSquares))
-    setMovesleft(movesLeft(newSquares))
+    setHistory(newHistory.concat([{ squares: newSquares }]))
+    setStepNumber(stepNumber + 1)
   }
 
   return (
     <div>
-      <div className="status">{gameoverMsg}</div>
-      <div className="status">{winnerMsg}</div>
-      <div className="status">{status}</div>
       <div className="board-row">
         {renderSquare(0)}
         {renderSquare(1)}
@@ -78,27 +71,60 @@ function Board(props) {
 
 function Game() {
   const state = {
-    squares: useState(new Array(9).fill(null)),
-    player: useState('X'),
-    winner: useState(null),
-    movesleft: useState(9),
-}
+    history: useState([{ squares: new Array(9).fill(null) }]),
+    stepNumber: useState(0)
+  }
+
+  const history = state.history[0]
+  const stepNumber = state.stepNumber[0]
+  const current = history[stepNumber]
+  const squares = current.squares
+  const player = getPlayer(squares)
+  const winner = calculateWinner(squares)
+
+  const status = winner
+    ? 'Winner:' + winner
+    : movesAvailable(squares) < 1
+    ? 'Tie game'
+    : 'Next player:' + player
+
+  const moves = history.map((step, move) => {
+    const desc = move ? 'Go to move #' + move : 'Go to game start'
+    return (
+      <li key={move}>
+        <button onClick={() => jumpTo(move)}>{desc}</button>
+      </li>
+    )
+  })
+
+  function jumpTo(step) {
+    const setStepNumber = state.stepNumber[1]
+    setStepNumber(step)
+  }
+
+  function movesAvailable(squares) {
+    return squares.reduce((acc, cur) => (cur === null ? acc + 1 : acc), 0)
+  }
 
   return (
     <div className="game">
       <div className="game-board">
-        <Board state={state}/>
+        <Board state={state} />
       </div>
       <div className="game-info">
-        <div>{/* status */}</div>
-        <ol>{/* TODO */}</ol>
+        <div>{status}</div>
+        <ol>{moves}</ol>
       </div>
     </div>
   )
 }
 
-function movesLeft(squares) {
-  return squares.reduce((acc, cur) => cur == null ? acc + 1 : acc, 0)
+function getPlayer(squares) {
+  const movesMade = squares.reduce(
+    (acc, cur) => (cur !== null ? acc + 1 : acc),
+    0
+  )
+  return movesMade % 2 === 0 ? 'X' : 'O'
 }
 
 function calculateWinner(squares) {
@@ -110,15 +136,15 @@ function calculateWinner(squares) {
     [1, 4, 7],
     [2, 5, 8],
     [0, 4, 8],
-    [2, 4, 6],
-  ];
+    [2, 4, 6]
+  ]
   for (let i = 0; i < lines.length; i++) {
-    const [a, b, c] = lines[i];
+    const [a, b, c] = lines[i]
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
+      return squares[a]
     }
   }
-  return null;
+  return null
 }
 // ========================================
 
