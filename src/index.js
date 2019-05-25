@@ -11,6 +11,12 @@ import './index.css'
 // Learn more about service workers: https://bit.ly/CRA-PWA
 // serviceWorker.unregister();
 
+// try refactor player to use bool instead of 'X'
+// try refactor to combine both useState into a custom hook
+// try refactor to useReducer
+// try to implement useHistory for time travel
+// try to implement time travel (see docs, example ttt, final results codepen)
+
 function Square({ value, onClick }) {
   // destructure props.number
   return (
@@ -20,22 +26,19 @@ function Square({ value, onClick }) {
   )
 }
 
-function Board() {
-  const [squares, setSquares] = useState(new Array(9).fill(null))
-  // try refactor to use bool instead of 'X'
-  const [player, setPlayer] = useState('X')
-  const [winner, setWinner] = useState(null)
-  // try refactor to combine both useState into a custom hook
-  // try refactor to useReducer
-  // try to implement useHistory for time travel
-  // try to implement time travel (see docs, example ttt, final results codepen)
+function Board(props) {
+  const [squares, setSquares] = props.state.squares
+  const [player, setPlayer] = props.state.player
+  const [winner, setWinner] = props.state.winner
+  const [movesleft, setMovesleft] = props.state.movesleft
+
+  const status = 'Next player: ' + player
+  const winnerMsg = winner ? 'Winner: ' + winner : ''
+  const gameoverMsg = movesleft < 1 ? 'Tie game' : ''
 
   function renderSquare(i) {
     return <Square value={squares[i]} onClick={() => handleClick(i)} />
   }
-
-  const status = 'Next player: ' + player
-  const winnerMsg = winner ? 'Winner: ' + winner : ''
 
   function handleClick(i) {
     if (squares[i] || winner) {
@@ -46,10 +49,12 @@ function Board() {
     setSquares(newSquares)
     setPlayer(player === 'X' ? 'O' : 'X')
     setWinner(calculateWinner(newSquares))
+    setMovesleft(movesLeft(newSquares))
   }
 
   return (
     <div>
+      <div className="status">{gameoverMsg}</div>
       <div className="status">{winnerMsg}</div>
       <div className="status">{status}</div>
       <div className="board-row">
@@ -72,10 +77,17 @@ function Board() {
 }
 
 function Game() {
+  const state = {
+    squares: useState(new Array(9).fill(null)),
+    player: useState('X'),
+    winner: useState(null),
+    movesleft: useState(9),
+}
+
   return (
     <div className="game">
       <div className="game-board">
-        <Board />
+        <Board state={state}/>
       </div>
       <div className="game-info">
         <div>{/* status */}</div>
@@ -83,6 +95,10 @@ function Game() {
       </div>
     </div>
   )
+}
+
+function movesLeft(squares) {
+  return squares.reduce((acc, cur) => cur == null ? acc + 1 : acc, 0)
 }
 
 function calculateWinner(squares) {
